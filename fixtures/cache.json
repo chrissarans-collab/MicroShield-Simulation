@@ -1,0 +1,145 @@
+{
+  "model_version": "1.0.0",
+  "description": "Shared cross-language fixtures for the set-associative cache model. Every case was derived by hand from docs/MODEL_SPEC.md: set/tag mapping, eviction order under LRU vs FIFO, and 3C miss classification against a fully-associative LRU shadow cache. Asserted by BOTH pytest and vitest.",
+  "cases": [
+    {
+      "name": "direct-mapped cold misses then hits",
+      "verified": "hand",
+      "config": { "capacity": 16, "line_size": 4, "associativity": 1, "replacement": "lru" },
+      "accesses": ["R0", "R4", "R8", "R12", "R0", "R4", "R8", "R12"],
+      "expected": {
+        "sets": 4,
+        "accesses": 8,
+        "reads": 8,
+        "writes": 0,
+        "hits": 4,
+        "misses": 4,
+        "hit_rate": 0.5,
+        "evictions": 0,
+        "misses_by_type": { "compulsory": 4, "capacity": 0, "conflict": 0 },
+        "final_state": [[0], [4], [8], [12]]
+      }
+    },
+    {
+      "name": "conflict miss when another block maps to the same set",
+      "verified": "hand",
+      "config": { "capacity": 16, "line_size": 4, "associativity": 1, "replacement": "lru" },
+      "accesses": ["R0", "R16", "R4", "R0", "R4"],
+      "expected": {
+        "sets": 4,
+        "accesses": 5,
+        "reads": 5,
+        "writes": 0,
+        "hits": 1,
+        "misses": 4,
+        "hit_rate": 0.2,
+        "evictions": 2,
+        "misses_by_type": { "compulsory": 3, "capacity": 0, "conflict": 1 },
+        "steps": [
+          { "index": 3, "op": "R", "address": 0, "set": 0, "tag": 0, "hit": false, "miss_type": "conflict", "evicted_block": 16 },
+          { "index": 4, "op": "R", "address": 4, "set": 1, "tag": 0, "hit": true, "miss_type": null }
+        ],
+        "final_state": [[0], [4], [], []]
+      }
+    },
+    {
+      "name": "capacity miss when the working set exceeds the shadow cache",
+      "verified": "hand",
+      "config": { "capacity": 8, "line_size": 4, "associativity": 1, "replacement": "lru" },
+      "accesses": ["R0", "R4", "R8", "R0", "R4"],
+      "expected": {
+        "sets": 2,
+        "accesses": 5,
+        "reads": 5,
+        "writes": 0,
+        "hits": 1,
+        "misses": 4,
+        "hit_rate": 0.2,
+        "evictions": 2,
+        "misses_by_type": { "compulsory": 3, "capacity": 1, "conflict": 0 },
+        "steps": [
+          { "index": 3, "op": "R", "address": 0, "set": 0, "tag": 0, "hit": false, "miss_type": "capacity", "evicted_block": 8 }
+        ],
+        "final_state": [[0], [4]]
+      }
+    },
+    {
+      "name": "LRU refreshes recency on a hit",
+      "verified": "hand",
+      "config": { "capacity": 16, "line_size": 4, "associativity": 2, "replacement": "lru" },
+      "accesses": ["R0", "R8", "R0", "R16", "R0"],
+      "expected": {
+        "sets": 2,
+        "accesses": 5,
+        "hits": 2,
+        "misses": 3,
+        "hit_rate": 0.4,
+        "evictions": 1,
+        "misses_by_type": { "compulsory": 3, "capacity": 0, "conflict": 0 },
+        "steps": [
+          { "index": 2, "set": 0, "hit": true },
+          { "index": 3, "set": 0, "hit": false, "miss_type": "compulsory", "evicted_block": 8 },
+          { "index": 4, "set": 0, "hit": true }
+        ],
+        "final_state": [[16, 0], []]
+      }
+    },
+    {
+      "name": "FIFO ignores hits, evicting the oldest insertion",
+      "verified": "hand",
+      "config": { "capacity": 16, "line_size": 4, "associativity": 2, "replacement": "fifo" },
+      "accesses": ["R0", "R8", "R0", "R16", "R0"],
+      "expected": {
+        "sets": 2,
+        "accesses": 5,
+        "hits": 1,
+        "misses": 4,
+        "hit_rate": 0.2,
+        "evictions": 2,
+        "misses_by_type": { "compulsory": 3, "capacity": 0, "conflict": 1 },
+        "steps": [
+          { "index": 2, "set": 0, "hit": true },
+          { "index": 3, "set": 0, "hit": false, "miss_type": "compulsory", "evicted_block": 0 },
+          { "index": 4, "set": 0, "hit": false, "miss_type": "conflict", "evicted_block": 8 }
+        ],
+        "final_state": [[16, 0], []]
+      }
+    },
+    {
+      "name": "read/write hit and miss breakdown",
+      "verified": "hand",
+      "config": { "capacity": 8, "line_size": 4, "associativity": 1, "replacement": "lru" },
+      "accesses": ["R0", "R0", "W0", "R4", "W4", "W0"],
+      "expected": {
+        "sets": 2,
+        "accesses": 6,
+        "reads": 3,
+        "writes": 3,
+        "hits": 4,
+        "misses": 2,
+        "hit_rate": 0.6666666666666666,
+        "read_hits": 1,
+        "write_hits": 3,
+        "evictions": 0,
+        "misses_by_type": { "compulsory": 2, "capacity": 0, "conflict": 0 },
+        "final_state": [[0], [4]]
+      }
+    },
+    {
+      "name": "empty sequence yields zeroed stats",
+      "verified": "hand",
+      "config": { "capacity": 64, "line_size": 16, "associativity": 4, "replacement": "lru" },
+      "accesses": [],
+      "expected": {
+        "sets": 1,
+        "accesses": 0,
+        "hits": 0,
+        "misses": 0,
+        "hit_rate": null,
+        "evictions": 0,
+        "misses_by_type": { "compulsory": 0, "capacity": 0, "conflict": 0 },
+        "final_state": [[]]
+      }
+    }
+  ]
+}

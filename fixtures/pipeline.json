@@ -1,0 +1,195 @@
+{
+  "model_version": "1.0.0",
+  "description": "Shared cross-language fixtures for the 5-stage pipeline model. Every case marked verified=hand was derived cycle-by-cycle on paper from docs/MODEL_SPEC.md: fill/drain counts, RAW stall distances, load-use stalls and branch flush counts. Asserted by BOTH pytest and vitest.",
+  "cases": [
+    {
+      "name": "no hazards, 4 instructions, forwarding",
+      "verified": "hand",
+      "program": "ADDI x1, x0, 5\nADDI x2, x0, 7\nADD x3, x1, x2\nHALT",
+      "config": { "forwarding": true, "branch_policy": "static_not_taken", "memory_latency": 1 },
+      "expected": {
+        "total_cycles": 8,
+        "retired": 4,
+        "cpi": 2.0,
+        "hazard_stall_cycles": 0,
+        "mem_stall_cycles": 0,
+        "flush_cycles": 0,
+        "mispredicts": 0,
+        "branches": 0,
+        "termination": "completed",
+        "trace_texts": [
+          ["ADDI x1, x0, 5", "", "", "", ""],
+          ["ADDI x2, x0, 7", "ADDI x1, x0, 5", "", "", ""],
+          ["ADD x3, x1, x2", "ADDI x2, x0, 7", "ADDI x1, x0, 5", "", ""],
+          ["HALT", "ADD x3, x1, x2", "ADDI x2, x0, 7", "ADDI x1, x0, 5", ""],
+          ["", "HALT", "ADD x3, x1, x2", "ADDI x2, x0, 7", "ADDI x1, x0, 5"],
+          ["", "", "HALT", "ADD x3, x1, x2", "ADDI x2, x0, 7"],
+          ["", "", "", "HALT", "ADD x3, x1, x2"],
+          ["", "", "", "", "HALT"]
+        ],
+        "final_registers": [0, 5, 7, 12, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+      }
+    },
+    {
+      "name": "single instruction",
+      "verified": "hand",
+      "program": "ADDI x1, x0, 5",
+      "config": { "forwarding": true },
+      "expected": {
+        "total_cycles": 5,
+        "retired": 1,
+        "cpi": 5.0,
+        "hazard_stall_cycles": 0,
+        "mem_stall_cycles": 0,
+        "flush_cycles": 0,
+        "termination": "completed"
+      }
+    },
+    {
+      "name": "empty program (no divide by zero)",
+      "verified": "hand",
+      "program": "",
+      "config": {},
+      "expected": {
+        "total_cycles": 0,
+        "retired": 0,
+        "cpi": null,
+        "termination": "completed"
+      }
+    },
+    {
+      "name": "load-use hazard with forwarding costs 1 stall",
+      "verified": "hand",
+      "program": "LW x1, 0(x0)\nADDI x2, x1, 1\nHALT",
+      "config": { "forwarding": true, "memory_latency": 1 },
+      "expected": {
+        "total_cycles": 8,
+        "retired": 3,
+        "cpi": 2.666667,
+        "hazard_stall_cycles": 1,
+        "mem_stall_cycles": 0,
+        "flush_cycles": 0,
+        "termination": "completed",
+        "memory_events": [
+          { "op": "LW", "address": 0, "latency": 1 }
+        ],
+        "final_registers": [0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+      }
+    },
+    {
+      "name": "taken branch under static not-taken: 2-instruction flush",
+      "verified": "hand",
+      "program": "ADDI x1, x0, 1\nBEQ x1, x1, L\nADDI x2, x0, 99\nADDI x3, x0, 5\nL: HALT",
+      "config": { "forwarding": true, "branch_policy": "static_not_taken" },
+      "expected": {
+        "total_cycles": 9,
+        "retired": 3,
+        "cpi": 3.0,
+        "hazard_stall_cycles": 0,
+        "flush_cycles": 2,
+        "mispredicts": 1,
+        "branches": 1,
+        "termination": "completed",
+        "branch_events": [
+          { "predicted": false, "actual": true, "correct": false, "flushes": 2 }
+        ],
+        "flush_cells": [
+          { "cycle": 4, "stage": "ID" },
+          { "cycle": 4, "stage": "IF" }
+        ],
+        "retired_texts": ["ADDI x1, x0, 1", "BEQ x1, x1, L", "HALT"]
+      }
+    },
+    {
+      "name": "not-taken branch under static not-taken: no flush",
+      "verified": "hand",
+      "program": "ADDI x1, x0, 1\nADDI x2, x0, 2\nBEQ x1, x2, L\nADDI x3, x0, 3\nL: HALT",
+      "config": { "forwarding": true, "branch_policy": "static_not_taken" },
+      "expected": {
+        "total_cycles": 9,
+        "retired": 5,
+        "cpi": 1.8,
+        "hazard_stall_cycles": 0,
+        "flush_cycles": 0,
+        "mispredicts": 0,
+        "branches": 1,
+        "termination": "completed"
+      }
+    },
+    {
+      "name": "RAW distance-1 without forwarding costs 2 stalls",
+      "verified": "hand",
+      "program": "ADDI x1, x0, 1\nADD x2, x1, x0\nHALT",
+      "config": { "forwarding": false },
+      "expected": {
+        "total_cycles": 9,
+        "retired": 3,
+        "cpi": 3.0,
+        "hazard_stall_cycles": 2,
+        "mem_stall_cycles": 0,
+        "flush_cycles": 0,
+        "termination": "completed",
+        "final_registers": [0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+      }
+    },
+    {
+      "name": "same RAW with forwarding costs 0 stalls",
+      "verified": "hand",
+      "program": "ADDI x1, x0, 1\nADD x2, x1, x0\nHALT",
+      "config": { "forwarding": true },
+      "expected": {
+        "total_cycles": 7,
+        "retired": 3,
+        "cpi": 2.333333,
+        "hazard_stall_cycles": 0,
+        "mem_stall_cycles": 0,
+        "flush_cycles": 0,
+        "termination": "completed",
+        "final_registers": [0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+      }
+    },
+    {
+      "name": "HALT-only program drains after 5 cycles",
+      "verified": "hand",
+      "program": "HALT",
+      "config": {},
+      "expected": {
+        "total_cycles": 5,
+        "retired": 1,
+        "cpi": 5.0,
+        "termination": "completed"
+      }
+    },
+    {
+      "name": "blocking memory latency freezes the front end",
+      "verified": "hand",
+      "program": "LW x1, 0(x0)\nADDI x2, x1, 1\nHALT",
+      "config": { "forwarding": true, "memory_latency": 3 },
+      "expected": {
+        "total_cycles": 10,
+        "retired": 3,
+        "cpi": 3.333333,
+        "hazard_stall_cycles": 1,
+        "mem_stall_cycles": 2,
+        "flush_cycles": 0,
+        "termination": "completed"
+      }
+    },
+    {
+      "name": "store forwards data and writes memory in MEM",
+      "verified": "hand",
+      "program": "ADDI x1, x0, 42\nSW x1, 8(x0)\nLW x2, 8(x0)\nHALT",
+      "config": { "forwarding": true, "memory_latency": 1 },
+      "expected": {
+        "total_cycles": 8,
+        "retired": 4,
+        "cpi": 2.0,
+        "hazard_stall_cycles": 0,
+        "flush_cycles": 0,
+        "termination": "completed",
+        "memory_writes": [{ "address": 8, "value": 42 }],
+        "final_registers": [0, 42, 42, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+      }
+    }
+  ]
+}

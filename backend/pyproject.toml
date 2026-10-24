@@ -1,0 +1,10 @@
+[project]
+name = "microshield-backend"
+version = "1.0.0"
+description = "MicroShield — CPU Microarchitecture & Security Lab (FastAPI backend)"
+requires-python = ">=3.9"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+addopts = "-q"

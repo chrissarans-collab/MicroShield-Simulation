@@ -1,0 +1,30 @@
+# Dependencies
+node_modules/
+
+# Frontend build output
+frontend/dist/
+*.tsbuildinfo
+
+# Backend
+backend/.venv/
+backend/venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+
+# Environment files (real values never belong in git)
+.env
+.env.local
+.env.*.local
+backend/.env
+frontend/.env
+
+# Logs and editor noise
+*.log
+.DS_Store
+.idea/
+.vscode/
+*.swp
+
+# Freebuff platform marker (local workspace metadata)
+.freebuff/

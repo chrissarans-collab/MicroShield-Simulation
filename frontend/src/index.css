@@ -1,0 +1,120 @@
+@import 'tailwindcss';
+
+@custom-variant light (&:where(.light, .light *));
+
+/* ------------------------------------------------------------------ */
+/* MicroShield semantic theme                                          */
+/* Dark is the default; adding class="light" on <html> switches theme. */
+/* All colors are CSS variables so charts and diagrams stay in sync.  */
+/* ------------------------------------------------------------------ */
+:root,
+:root.dark {
+  --ms-bg: #0a0f1c;
+  --ms-surface: #0f1626;
+  --ms-surface2: #152036;
+  --ms-line: #1e2a44;
+  --ms-ink: #e6edf7;
+  --ms-muted: #8b9bb8;
+  --ms-accent: #22d3ee;
+  --ms-accent2: #3b82f6;
+  --ms-violet: #8b5cf6;
+  --ms-ok: #34d399;
+  --ms-warn: #fbbf24;
+  --ms-bad: #f87171;
+  --ms-grid: #1a2440;
+}
+
+:root.light {
+  --ms-bg: #f4f6fb;
+  --ms-surface: #ffffff;
+  --ms-surface2: #eef2f9;
+  --ms-line: #d9e1ee;
+  --ms-ink: #0f172a;
+  --ms-muted: #51607c;
+  --ms-accent: #0e7490;
+  --ms-accent2: #2563eb;
+  --ms-violet: #6d28d9;
+  --ms-ok: #047857;
+  --ms-warn: #b45309;
+  --ms-bad: #b91c1c;
+  --ms-grid: #dbe3f0;
+}
+
+@theme inline {
+  --color-bg: var(--ms-bg);
+  --color-surface: var(--ms-surface);
+  --color-surface2: var(--ms-surface2);
+  --color-line: var(--ms-line);
+  --color-ink: var(--ms-ink);
+  --color-muted: var(--ms-muted);
+  --color-accent: var(--ms-accent);
+  --color-accent2: var(--ms-accent2);
+  --color-violet: var(--ms-violet);
+  --color-ok: var(--ms-ok);
+  --ms-warn-color: var(--ms-warn);
+  --color-warn: var(--ms-warn);
+  --color-bad: var(--ms-bad);
+  --color-grid: var(--ms-grid);
+
+  --font-sans:
+    ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  --font-mono:
+    ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace;
+}
+
+@layer base {
+  html {
+    color-scheme: dark;
+  }
+  html.light {
+    color-scheme: light;
+  }
+  body {
+    @apply bg-bg text-ink font-sans antialiased;
+  }
+  ::selection {
+    background: color-mix(in oklab, var(--ms-accent) 30%, transparent);
+  }
+  /* Thin, quiet scrollbars to match the engineering-dashboard look */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--ms-line) transparent;
+  }
+  *::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+  *::-webkit-scrollbar-thumb {
+    background: var(--ms-line);
+    border-radius: 4px;
+  }
+  *::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  :focus-visible {
+    outline: 2px solid var(--ms-accent);
+    outline-offset: 1px;
+  }
+}
+
+@layer utilities {
+  .panel {
+    @apply bg-surface border border-line rounded-lg;
+  }
+  .mono {
+    font-family: var(--font-mono);
+  }
+  /* Subtle pulse used for the "live" simulation cursor */
+  @keyframes ms-pulse {
+    0%,
+    100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.55;
+    }
+  }
+  .animate-ms-pulse {
+    animation: ms-pulse 1.4s ease-in-out infinite;
+  }
+}
